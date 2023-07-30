@@ -7,24 +7,22 @@ namespace Assets.Scripts.Actors
 {
     public static class BoardHelper
     {
-        //public static BoardSettings BoardSettings => GameManager.Instance.BoardSettings;
+        public static Vector2 GetBoardPositionByMatrixPosition(Vector2Int matrixPos)
+        {
+            int rowNumber = BoardConfiguration.Instance.RowNumber;
+            int columnNumber = BoardConfiguration.Instance.ColumnNumber;
+            float blockMargin = BoardConfiguration.Instance.BlockMargin;
+            float blockScale = AssetHolder.Instance.BlockPrefab.spriteRenderer
+                                                   .transform.localScale.x;
 
-        //public static Vector2 BoardTopLeftCorner => new Vector2(-BoardSettings.HorizontalTileCount / 2 * BoardSettings.TileWidth,
-        //                                                         BoardSettings.VerticalTileCount / 2 * BoardSettings.TileWidth);
+            float blockWith = blockMargin + blockScale * 2;
 
-        //public static Vector2 GetBlockPositionByMatrixPosition(int x, int y) =>
-        //    BoardTopLeftCorner + new Vector2(BoardSettings.BlockMargin + x * BoardSettings.TileWidth
-        //                                  - (BoardSettings.HorizontalTileCount % 2 == 0 ? 0 : BoardSettings.TileWidth / 2),
+            // For centering board
+            matrixPos.x -= rowNumber / 2;
+            matrixPos.y -= columnNumber / 2;
 
-        //                                     -BoardSettings.BlockMargin - y * BoardSettings.TileWidth
-        //                                   + (BoardSettings.VerticalTileCount % 2 == 0 ? 0 : BoardSettings.TileWidth / 2));
-
-        //public static Block[,] SetupBlockMatrix() =>
-        //     new Block[BoardSettings.HorizontalTileCount,
-        //              BoardSettings.VerticalTileCount];
-
-        //public static Block GetBlockPrefabByType(BlockType blockType) =>
-        //    BoardSettings.BlockPrefabs.FirstOrDefault(x => x.BlockType == blockType);
-
+            return new Vector2(blockWith * matrixPos.x - (rowNumber % 2 == 0 ? 0 : blockScale / 2),
+                              -blockWith * matrixPos.y + (columnNumber % 2 == 0 ? 0 : blockScale / 2));
+        }
     }
 }

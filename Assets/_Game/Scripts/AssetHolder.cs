@@ -12,7 +12,7 @@ public class AssetHolder : SingletonScriptableObject<AssetHolder>
 
     public List<BlockColorData> BlockColors = new();
 
-    public BlockColorData GetRandomColor() => BlockColors[Random.Range(0, BlockColors.Count)];
+    public BlockColorData GetRandomColorData() => BlockColors[Random.Range(0, BlockColors.Count)];
 
     public BlockGroupData GetGroupConfigByBlockNumber(int num) =>
             BlockGroupConfigurations.FirstOrDefault(x => num >= x.MinBlockNumber &&

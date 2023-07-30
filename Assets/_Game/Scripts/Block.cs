@@ -2,6 +2,7 @@ using Assets.Scripts.Actors;
 using DG.Tweening;
 using System;
 using System.Linq;
+using TMPro;
 using UnityEngine;
 
 public class Block : MonoBehaviour
@@ -16,9 +17,8 @@ public class Block : MonoBehaviour
 
     #endregion
 
-    [SerializeField] private SpriteRenderer spriteRenderer;
-
-    private Sequence tweenSequence;
+    public SpriteRenderer spriteRenderer;
+    [SerializeField] private TMP_Text group;
 
     private void Awake()
     {
@@ -34,7 +34,7 @@ public class Block : MonoBehaviour
 
         SetMatrixPos(matrixPos);
 
-        LocateByMatrixPosition(matrixPos);
+        transform.localPosition = BoardHelper.GetBoardPositionByMatrixPosition(matrixPos);
     }
 
     public void SetSprite(Sprite sprite) => spriteRenderer.sprite = sprite;
@@ -46,24 +46,11 @@ public class Block : MonoBehaviour
         spriteRenderer.sortingOrder = BoardConfiguration.Instance.RowNumber - matrixPos.y;
     }
 
-    public void SetGroupId(int? id) => GroupId = id;
+    public void SetLocalPosition(Vector2 position) => transform.localPosition = position;
+
+    public void SetGroupId(int? id) => group.text = (GroupId = id).ToString();
 
     #endregion
-
-    private void LocateByMatrixPosition(Vector2Int matrixPos)
-    {
-        //For centering board
-        matrixPos.x -= BoardConfiguration.Instance.RowNumber / 2;
-        matrixPos.y -= BoardConfiguration.Instance.ColumnNumber / 2;
-
-        float blockScale = spriteRenderer.transform.localScale.x;
-
-        transform.localPosition = new Vector2((BoardConfiguration.Instance.BlockMargin + blockScale * 2) * matrixPos.x
-                                           - (BoardConfiguration.Instance.RowNumber % 2 == 0 ? 0 : blockScale / 2),
-
-                                              -(BoardConfiguration.Instance.BlockMargin + blockScale * 2) * matrixPos.y
-                                            + (BoardConfiguration.Instance.ColumnNumber % 2 == 0 ? 0 : blockScale / 2));
-    }
 
     public void BlowUp()
     {
@@ -73,5 +60,12 @@ public class Block : MonoBehaviour
     private void OnMouseDown()
     {
         BoardManager.Instance.OnBlockClicked(this);
+    }
+
+    internal void FallToOwnPosition()
+    {
+        var targetPos = BoardHelper.GetBoardPositionByMatrixPosition(MatrixPos);
+
+        transform.DOMoveY(targetPos.y, .5f);//.SetEase(Ease.OutBounce);
     }
 }

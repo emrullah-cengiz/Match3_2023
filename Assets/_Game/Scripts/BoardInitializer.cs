@@ -1,4 +1,6 @@
 using Assets.Scripts.Actors;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BoardInitializer : MonoBehaviour
@@ -21,6 +23,7 @@ public class BoardInitializer : MonoBehaviour
 
     public void CreateBoard()
     {
+        HashSet<Block> blocksSet = new();
         Block[,] blocks = new Block[BoardConfiguration.Instance.ColumnNumber,
                                     BoardConfiguration.Instance.RowNumber];
 
@@ -28,7 +31,7 @@ public class BoardInitializer : MonoBehaviour
         {
             for (int y = 0; y < BoardConfiguration.Instance.RowNumber; y++)
             {
-                var blockColor = AssetHolder.Instance.GetRandomColor();
+                var blockColor = AssetHolder.Instance.GetRandomColorData();
                 var blockPrefab = AssetHolder.Instance.BlockPrefab;
 
                 var block = Instantiate(blockPrefab, blocksParent);
@@ -36,12 +39,15 @@ public class BoardInitializer : MonoBehaviour
                 block.Setup(blockColor, new(x, y));
 
                 blocks[x, y] = block;
+                blocksSet.Add(block);
             }
         }
 
         BoardManager.Instance.Blocks = blocks;
 
-        BoardManager.Instance.DetectGroups();
+        BoardManager.Instance.ClearGroups();
+
+        BoardManager.Instance.ScanBlocksForGroups(blocksSet);
     }
 
 }
