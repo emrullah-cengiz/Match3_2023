@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6d8355897a11d9843b147f3238603298, type: 3}
   m_Name: BoardConfiguration
   m_EditorClassIdentifier: 
-  ColumnNumber: 12
-  RowNumber: 8
-  BlockColorNumber: 6
+  ColumnNumber: 10
+  RowNumber: 7
+  BlockColorNumber: 4
   MinBlockNumberForBlowUp: 2
   BlockDropDuration: 0.8
+  InitialPoolBlockCount: 5
   BlockMargin: 0.1
