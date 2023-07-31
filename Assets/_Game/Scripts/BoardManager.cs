@@ -1,12 +1,15 @@
 ﻿using Assets.Scripts.Actors;
 using Assets.Scripts.Infrastructure;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.VersionControl;
 using UnityEngine;
+using static Unity.Collections.AllocatorManager;
 
 public class BoardManager : SingletonMonoBehaviour<BoardManager>
 {
+    public BlockPool BlockPool;
     public BlockSpawner BlockSpawner;
 
     public Block[,] Blocks;
@@ -15,7 +18,7 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
     bool[,] visitedBlocks;
     int groupIdCounter;
 
-    static readonly IEnumerable<Vector2Int> NEIGHBORS_DIRECTIONS = new HashSet<Vector2Int>() {
+    static readonly IEnumerable<Vector2Int> NEIGHBOR_DIRECTIONS = new HashSet<Vector2Int>() {
             Vector2Int.left,
             Vector2Int.up,
             Vector2Int.right,
@@ -32,7 +35,7 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
         //ScanBlocksForGroups(Blocks);
     }
 
-    #region Blow up
+    #region Blow up / Fall / Spawn
 
     public void OnBlockClicked(Block block)
     {
@@ -44,7 +47,7 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
     {
         var blocks = Groups[groupId];
 
-        RemoveGroupRecordByBlock(groupId);
+        RemoveGroupRecordById(groupId);
 
         foreach (var block in blocks)
         {
@@ -52,18 +55,22 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
             block.BlowUp();
         }
 
-        DropBlocksAndSpawnNewBlocksOnMatrix(blocks.Select(x => x.MatrixPos).ToHashSet(),
-                                       out HashSet<Block> updatedBlocks);
+        var emptySlots = blocks.Select(x => x.MatrixPos).ToHashSet();
 
-        ScanBlocksForGroups(updatedBlocks);
+        var matrixBoundsForScan = BoardHelper.GetMatrixBoundsFromPositionSet(emptySlots, strechAmount: 1);
 
-        AnimateFallOfBlocks(updatedBlocks);
+        DropBlocksAndSpawnNewBlocksOnMatrix(emptySlots, out HashSet<Block> updatedBlocks);
+
+        ScanBlocksForGroupsBySpecifiedBounds(matrixBoundsForScan);
+
+        //AnimateFallOfBlocks(updatedBlocks);
 
     }
-    //blocksToBeFall'u matris pozisyonları ile değiştir
+
     public void DropBlocksAndSpawnNewBlocksOnMatrix(HashSet<Vector2Int> emptySlots, out HashSet<Block> updatedBlocks)
     {
         updatedBlocks = new();
+
         var groupedEmptySlotsByColumn = emptySlots.GroupBy(d => d.x);
 
         //Drop blocks to down 
@@ -71,30 +78,41 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
         {
             int x = column.FirstOrDefault().x;
             int emptySlotCount = column.Count();
-            int topEmptySlot = column.Min(s => s.y);//Mathf.Clamp(column.Min(s => s.y), 0, BoardConfiguration.Instance.RowNumber);
-            int bottomEmptySlot = topEmptySlot + emptySlotCount - 1;
+            int bottomEmptySlotIndex = column.Select(x => x.y).Max();
 
-            for (int y = bottomEmptySlot; y >= 0; y--)
+            Block[] affectedColumnBlocks = new Block[bottomEmptySlotIndex + 1];
+            int oldBlocksIndexer = bottomEmptySlotIndex;
+            int spawnCounter = 0;
+
+            for (int y = bottomEmptySlotIndex; y >= 0; y--)
             {
-                Block blockToFall = null;
+                Block block = Blocks[x, y];
 
-                if (y - emptySlotCount >= 0)
+                if (block != null)
                 {
-                    //Drop upper block down to here
-                    blockToFall = Blocks[x, y - emptySlotCount];
-                    RemoveGroupRecordByBlock(blockToFall.GroupId);
+                    affectedColumnBlocks[oldBlocksIndexer--] = block;
+                    RemoveGroupRecordById(block.GroupId);
                 }
                 else
                 {
-                    //Spawn new blocks 
-                    blockToFall = BlockSpawner.Spawn(x, y);
-                    blockToFall.SetLocalPosition(BoardHelper.GetBoardPositionByMatrixPosition(new(x, y - emptySlotCount)));
-                }
+                    //Spawn new block
+                    var newBlock = BlockSpawner.Spawn(x, spawnCounter);
+                    newBlock.SetLocalPosition(BoardHelper.GetBoardPositionByMatrixPosition(new(x, spawnCounter - emptySlotCount)));
 
-                Blocks[x, y] = blockToFall;
-                blockToFall.SetMatrixPos(new(x, y));
-                updatedBlocks.Add(blockToFall);
+                    affectedColumnBlocks[spawnCounter++] = newBlock;
+                }
             }
+
+            for (int y = 0; y <= bottomEmptySlotIndex; y++)
+            {
+                Block block = affectedColumnBlocks[y];
+                block.SetMatrixPos(new(x, y));
+                Blocks[x, y] = block;
+
+                block.FallToOwnPosition();
+            }
+
+            updatedBlocks.UnionWith(affectedColumnBlocks.ToHashSet());
         }
     }
 
@@ -108,79 +126,63 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
 
     #region Group detection
 
-    public void ScanBlocksForGroups(HashSet<Block> blocksToBeScan)
+    public void ScanBlocksForGroupsBySpecifiedBounds(MatrixBounds bounds)
     {
-        //Groups = new();
+        visitedBlocks = new bool[BoardConfiguration.Instance.ColumnNumber, BoardConfiguration.Instance.RowNumber];
 
-        visitedBlocks = new bool[BoardConfiguration.Instance.RowNumber,
-                                 BoardConfiguration.Instance.ColumnNumber];
-
-        foreach (var block in blocksToBeScan)
+        for (int x = bounds.MinX; x <= bounds.MaxX; x++)
         {
-            if (visitedBlocks[block.MatrixPos.x, block.MatrixPos.y])
-                continue;
-
-            HashSet<Block> foundedBlocks = new() { block };
-
-            //if (block.GroupId.HasValue)
-            //    Groups.Remove(block.GroupId.Value);
-
-            int groupId = GetNextGroupId();
-
-            DeepSearchByBlock(block, block.Color, ref groupId, ref foundedBlocks);
-
-            if (foundedBlocks.Count >= BoardConfiguration.Instance.MinBlockNumberForBlowUp)
+            for (int y = bounds.MinY; y <= bounds.MaxY; y++)
             {
-                if (Groups.TryGetValue(groupId, out var _blocks))
-                    AppendBlocksToGroup(foundedBlocks, groupId);
-                else
-                    AddGroup(groupId, foundedBlocks);
+                if (visitedBlocks[x, y])
+                    continue;
+
+                var block = Blocks[x, y];
+
+                HashSet<Block> foundedBlocks = new();// { block };
+                HashSet<int> foundedGroupIds = new();
+
+                DeepSearchByBlock(block, block.Color, ref foundedBlocks, ref foundedGroupIds);
+
+                if (foundedBlocks.Count >= BoardConfiguration.Instance.MinBlockNumberForBlowUp)
+                {
+                    foreach (var gId in foundedGroupIds)
+                    {
+                        Groups.Remove(gId, out var blocks);
+                        foundedBlocks.UnionWith(blocks);
+                    }
+
+                    AddGroup(GetNextGroupId(), foundedBlocks);
+                }
             }
-            else
-                SetGroupIdToBlocks(foundedBlocks, null);//gerek olmayablir
         }
-
-        SetGroupStyles();
     }
 
-
-    private static void SetGroupIdToBlocks(HashSet<Block> foundedBlocks, int? groupId)
-    {
-        foreach (var block in foundedBlocks)
-            block.SetGroupId(groupId);
-    }
-
-    /// <summary>
-    /// Deep-First Searching
-    /// </summary>
     public void DeepSearchByBlock(Block block, BlockColorData color,
-                           ref int groupId,
-                           ref HashSet<Block> foundedBlocks,
-                           ref HashSet<int> foundedGroupIds,
-                           Block previousBlock = null)
+                                  ref HashSet<Block> foundedBlocks,
+                                  ref HashSet<int> foundedGroupIds,
+                                  Block previousBlock = null)
     {
         if (visitedBlocks[block.MatrixPos.x, block.MatrixPos.y] ||
             color.Id != block.Color.Id)
             return;
 
+        foundedBlocks.Add(block);
+
         if (block.GroupId.HasValue)
         {
-            //A group was found on this path, join that group directly
-            groupId = block.GroupId.Value;
+            //A group was found on this path, hold groupId
+            foundedGroupIds.Add(block.GroupId.Value);
             return;
         }
 
-        RemoveGroupRecordByBlock(block.GroupId);
-
-        foundedBlocks.Add(block);
+        //RemoveGroupRecordById(block.GroupId);
 
         visitedBlocks[block.MatrixPos.x, block.MatrixPos.y] = true;
 
-        Block neighbor;
-
-        foreach (var dir in NEIGHBORS_DIRECTIONS)
-            if (CheckHasNeighbor(block, dir, out neighbor))
-                DeepSearchByBlock(neighbor, color, ref groupId, ref foundedBlocks, ref foundedGroupIds, previousBlock: block);
+        foreach (var dir in NEIGHBOR_DIRECTIONS)
+            if (CheckHasNeighbor(block, dir, out Block neighbor))
+                DeepSearchByBlock(neighbor, color, ref foundedBlocks, ref foundedGroupIds, previousBlock: block);
     }
 
     public bool CheckHasNeighbor(Block block, Vector2Int direction, out Block neighbor)
@@ -202,50 +204,53 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
     }
 
     //optimize et
-    private void SetGroupStyles()
+    //private void SetGroupStyle(int? groupId)
+    //{
+    //    var blocks = Groups[groupId];
+
+    //    var groupConfig = AssetHolder.Instance.GetGroupConfigByBlockNumber(blocks.Count);
+
+    //    if (!(groupConfig == null && blocks.Count >= 2))
+    //        foreach (var block in blocks)
+    //            block.SetSprite(groupConfig.GetSpriteByColor(block.Color));
+    //}
+
+    private void SetGroupToBlocks(HashSet<Block> foundedBlocks, int? groupId)
     {
-        foreach (var group in Groups)
+        var groupConfig = AssetHolder.Instance.GetGroupConfigByBlockNumber(foundedBlocks.Count);
+
+        foreach (var block in foundedBlocks)
         {
-            var groupConfig = AssetHolder.Instance.GetGroupConfigByBlockNumber(group.Value.Count);
+            block.SetGroupId(groupId);
 
-            if (!(groupConfig == null && group.Value.Count >= 2))
-                foreach (var block in group.Value)
-                {
-                    if (!block)
-                    { }
+            Sprite sprite = null;
 
-                    block.SetSprite(groupConfig.GetSpriteByColor(block.Color));
-                }
+            if (groupConfig != null && groupId.HasValue)
+                sprite = groupConfig.GetSpriteByColor(block.Color);
+            else
+                sprite = block.Color.DefaultSprite;
+
+            block.SetSprite(sprite);
         }
     }
 
     public void ClearGroups() => Groups = new();
 
-    public void AppendBlocksToGroup(HashSet<Block> blocks, int groupId)
-    {
-        foreach (var block in blocks)
-            Groups[groupId].Add(block);
-
-        SetGroupIdToBlocks(blocks, groupId);
-    }
-
-    public void AddGroup(int groupId, HashSet<Block> blocks)
+    private void AddGroup(int groupId, HashSet<Block> blocks)
     {
         Groups[groupId] = blocks;
 
-        SetGroupIdToBlocks(blocks, groupId);
+        SetGroupToBlocks(blocks, groupId);
     }
 
-    public void RemoveGroupRecordByBlock(int? groupId)
+    private void RemoveGroupRecordById(int? groupId)
     {
         if (!groupId.HasValue)
             return;
 
-        var groupBlocks = Groups[groupId.Value];
+        Groups.Remove(groupId.Value, out var groupBlocks);
 
-        SetGroupIdToBlocks(groupBlocks, null);
-
-        Groups.Remove(groupId.Value);
+        SetGroupToBlocks(groupBlocks, null);
     }
 
     private int GetNextGroupId() => groupIdCounter++;

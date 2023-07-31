@@ -16,5 +16,5 @@ public class AssetHolder : SingletonScriptableObject<AssetHolder>
 
     public BlockGroupData GetGroupConfigByBlockNumber(int num) =>
             BlockGroupConfigurations.FirstOrDefault(x => num >= x.MinBlockNumber &&
-                                                         num <= x.MaxBlockNumber);
+                                                         (num <= x.MaxBlockNumber || x.MaxBlockNumber == -1));
 }

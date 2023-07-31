@@ -1,8 +1,7 @@
 using Assets.Scripts.Actors;
 using DG.Tweening;
-using System;
-using System.Linq;
 using TMPro;
+using Unity.VisualScripting;
 using UnityEngine;
 
 public class Block : MonoBehaviour
@@ -10,25 +9,56 @@ public class Block : MonoBehaviour
     #region Logic properties
 
     [SerializeField] private BlockColorData _color;
-    public BlockColorData Color { get => _color; set => _color = value; }
+    public BlockColorData Color => _color;
 
     [HideInInspector] public Vector2Int MatrixPos { get; private set; }
     [HideInInspector] public int? GroupId { get; private set; }
 
+    private bool isDropping;
+    private float dropDuration;
+    private int rowNumber;
+
     #endregion
 
-    public SpriteRenderer spriteRenderer;
-    [SerializeField] private TMP_Text group;
+    [SerializeField] private SpriteRenderer spriteRenderer;
+
+    //[SerializeField] private TMP_Text txtGroupId;
 
     private void Awake()
     {
-        GroupId = null;
+        rowNumber = BoardConfiguration.Instance.RowNumber;
+        dropDuration = BoardConfiguration.Instance.BlockDropDuration;
     }
 
+    private void OnMouseDown()
+    {
+        if (!isDropping)
+            BoardManager.Instance.OnBlockClicked(this);
+    }
+
+    public void BlowUp()
+    {
+        gameObject.SetActive(false);
+        BoardManager.Instance.BlockPool.SetObject(this);
+    }
+
+    public void FallToOwnPosition()
+    {
+        isDropping = true;
+
+        var targetPos = BoardHelper.GetBoardPositionByMatrixPosition(MatrixPos);
+
+        transform.DOMoveY(targetPos.y, dropDuration)
+                 .SetEase(Ease.OutBounce)
+                 .OnComplete(() => isDropping = false);
+    }
+
+
     #region Set methods
+
     public void Setup(BlockColorData blockColorData, Vector2Int matrixPos)
     {
-        Color = blockColorData;
+        _color = blockColorData;
 
         SetSprite(blockColorData.DefaultSprite);
 
@@ -42,30 +72,15 @@ public class Block : MonoBehaviour
     public void SetMatrixPos(Vector2Int matrixPos)
     {
         MatrixPos = matrixPos;
-
-        spriteRenderer.sortingOrder = BoardConfiguration.Instance.RowNumber - matrixPos.y;
+        spriteRenderer.sortingOrder = rowNumber - matrixPos.y;
     }
 
     public void SetLocalPosition(Vector2 position) => transform.localPosition = position;
 
-    public void SetGroupId(int? id) => group.text = (GroupId = id).ToString();
+    public void SetGroupId(int? id) => GroupId = id;
 
     #endregion
 
-    public void BlowUp()
-    {
-        Destroy(gameObject);
-    }
+    public float GetWidth() => spriteRenderer.transform.localScale.x;
 
-    private void OnMouseDown()
-    {
-        BoardManager.Instance.OnBlockClicked(this);
-    }
-
-    internal void FallToOwnPosition()
-    {
-        var targetPos = BoardHelper.GetBoardPositionByMatrixPosition(MatrixPos);
-
-        transform.DOMoveY(targetPos.y, .5f);//.SetEase(Ease.OutBounce);
-    }
 }

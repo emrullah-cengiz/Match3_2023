@@ -47,7 +47,13 @@ public class BoardInitializer : MonoBehaviour
 
         BoardManager.Instance.ClearGroups();
 
-        BoardManager.Instance.ScanBlocksForGroups(blocksSet);
+        BoardManager.Instance.ScanBlocksForGroupsBySpecifiedBounds(new()
+        {
+            MinX = 0,
+            MinY = 0,
+            MaxX = BoardConfiguration.Instance.ColumnNumber - 1,
+            MaxY = BoardConfiguration.Instance.RowNumber - 1
+        });
     }
 
 }

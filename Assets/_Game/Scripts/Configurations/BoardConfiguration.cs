@@ -12,6 +12,7 @@ public class BoardConfiguration : SingletonScriptableObject<BoardConfiguration>
     [Header("Blocks")]
     public int BlockColorNumber = 10;
     public int MinBlockNumberForBlowUp = 2;
+    public float BlockDropDuration = .8f;
 
     [Header("Style")]
     public float BlockMargin = .1f;
