@@ -2,19 +2,19 @@
 # Match-3 Puzzle Case Study (With Collapse/Blast)
   
   Project built with Unity 2022.3.5f1
-
-  ![ezgif com-crop](https://github.com/githubsiz-developer/Match3_2023/assets/65115099/dab925be-aa2c-4736-87d8-44b0e54c3321)
+  
+ ![ezgif com-crop](https://github.com/githubsiz-developer/Match3_2023/assets/65115099/05fe65c6-b364-46cf-923f-95526b312c4f)
 
 * Configurations can be edited from the BoardConfiguration file located in the **Assets/Resource/_Game** folder.
 
-  ![image](https://github.com/githubsiz-developer/Match3_2023/assets/65115099/d2bf3b69-2623-4e55-8341-f94727d2e873)
+  ![image](https://github.com/githubsiz-developer/Match3_2023/assets/65115099/2f2ffbbb-82ef-40a2-983a-7c268341bf4b)
 
 * Grouping And Color options can be found in the **Assets/_Game/Configurations**
 
-  ![image](https://github.com/githubsiz-developer/Match3_2023/assets/65115099/64272a8b-b1fd-4ff8-8629-fd43f567e5aa)
-
+  ![image](https://github.com/githubsiz-developer/Match3_2023/assets/65115099/02136184-bd01-44f5-a0a5-c47f05fe81e4)
 
 * Grouping and Color options must be added to AssetHolder asset.
 
-  ![image](https://github.com/githubsiz-developer/Match3_2023/assets/65115099/f5a5e041-5819-46f9-80aa-800b9e6f80fa)
+  ![image](https://github.com/githubsiz-developer/Match3_2023/assets/65115099/2b97bcf6-397b-4b2f-a0e1-56cfed74737e)
+
  
