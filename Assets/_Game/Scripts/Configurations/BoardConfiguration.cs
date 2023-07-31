@@ -14,6 +14,9 @@ public class BoardConfiguration : SingletonScriptableObject<BoardConfiguration>
     public int MinBlockNumberForBlowUp = 2;
     public float BlockDropDuration = .8f;
 
+    [Header("Pooling")]
+    public int InitialPoolBlockCount = 5;
+
     [Header("Style")]
     public float BlockMargin = .1f;
 }

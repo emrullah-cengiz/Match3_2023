@@ -27,7 +27,8 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
 
     public void OnBlockClicked(Block block)
     {
-        if (lastDroppingBlock == null && block.GroupId.HasValue)
+        if (/*lastDroppingBlock == null &&*/
+            block.GroupId.HasValue)
             BlowUpGroup(block.GroupId.Value);
     }
 

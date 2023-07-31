@@ -3,6 +3,7 @@ using DG.Tweening;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
+using static UnityEngine.RuleTile.TilingRuleOutput;
 
 public class Block : MonoBehaviour
 {
@@ -56,6 +57,8 @@ public class Block : MonoBehaviour
         BoardManager.Instance.SetDroppingBlock(this);
 
         var targetPos = BoardHelper.GetBoardPositionByMatrixPosition(MatrixPos);
+
+        transform.DOKill();
 
         transform.DOMoveY(targetPos.y, dropDuration)
                  .SetEase(Ease.OutBounce)
