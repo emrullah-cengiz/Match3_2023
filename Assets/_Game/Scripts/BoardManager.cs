@@ -11,35 +11,23 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
 {
     public BlockPool BlockPool;
     public BlockSpawner BlockSpawner;
+    public Block[,] Blocks { get; private set; }
+    public Dictionary<int, HashSet<Block>> Groups { get; private set; }
 
-    public Block[,] Blocks;
-    public Dictionary<int, HashSet<Block>> Groups;
+    private Block lastDroppingBlock;
+    private bool[,] visitedBlocks;
+    private int groupIdCounter;
 
-    bool[,] visitedBlocks;
-    int groupIdCounter;
 
-    static readonly IEnumerable<Vector2Int> NEIGHBOR_DIRECTIONS = new HashSet<Vector2Int>() {
-            Vector2Int.left,
-            Vector2Int.up,
-            Vector2Int.right,
-            Vector2Int.down,
-        };
+    private void Awake() => Groups = new();
 
-    private void Awake()
-    {
-        Groups = new();
-    }
-
-    private void Start()
-    {
-        //ScanBlocksForGroups(Blocks);
-    }
+    public void SetBlocks(Block[,] blocks) => Blocks = blocks;
 
     #region Blow up / Fall / Spawn
 
     public void OnBlockClicked(Block block)
     {
-        if (block.GroupId.HasValue)
+        if (lastDroppingBlock == null && block.GroupId.HasValue)
             BlowUpGroup(block.GroupId.Value);
     }
 
@@ -62,9 +50,6 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
         DropBlocksAndSpawnNewBlocksOnMatrix(emptySlots, out HashSet<Block> updatedBlocks);
 
         ScanBlocksForGroupsBySpecifiedBounds(matrixBoundsForScan);
-
-        //AnimateFallOfBlocks(updatedBlocks);
-
     }
 
     public void DropBlocksAndSpawnNewBlocksOnMatrix(HashSet<Vector2Int> emptySlots, out HashSet<Block> updatedBlocks)
@@ -114,12 +99,6 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
 
             updatedBlocks.UnionWith(affectedColumnBlocks.ToHashSet());
         }
-    }
-
-    private void AnimateFallOfBlocks(HashSet<Block> blocksToBeFall)
-    {
-        foreach (var block in blocksToBeFall)
-            block.FallToOwnPosition();
     }
 
     #endregion
@@ -176,11 +155,9 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
             return;
         }
 
-        //RemoveGroupRecordById(block.GroupId);
-
         visitedBlocks[block.MatrixPos.x, block.MatrixPos.y] = true;
 
-        foreach (var dir in NEIGHBOR_DIRECTIONS)
+        foreach (var dir in BoardHelper.NEIGHBOR_DIRECTIONS)
             if (CheckHasNeighbor(block, dir, out Block neighbor))
                 DeepSearchByBlock(neighbor, color, ref foundedBlocks, ref foundedGroupIds, previousBlock: block);
     }
@@ -189,31 +166,16 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
     {
         var neighborPos = block.MatrixPos + direction;
 
-        neighborPos.Clamp(Vector2Int.zero, new Vector2Int(BoardConfiguration.Instance.RowNumber - 1,
-                                                          BoardConfiguration.Instance.ColumnNumber - 1));
+        neighborPos.Clamp(Vector2Int.zero, new Vector2Int(BoardConfiguration.Instance.ColumnNumber - 1,
+                                                          BoardConfiguration.Instance.RowNumber - 1));
 
         //There is no neighbor if position has not changed after clamp 
         bool hasNeighbor = block.MatrixPos != neighborPos;
 
         neighbor = hasNeighbor ? Blocks[neighborPos.x, neighborPos.y] : null;
 
-        if (!neighbor && neighborPos.x != 0 && neighborPos.x != 7 && neighborPos.y != 0 && neighborPos.y != 7)
-            print("Empty neighbor : " + neighborPos);
-
         return hasNeighbor;
     }
-
-    //optimize et
-    //private void SetGroupStyle(int? groupId)
-    //{
-    //    var blocks = Groups[groupId];
-
-    //    var groupConfig = AssetHolder.Instance.GetGroupConfigByBlockNumber(blocks.Count);
-
-    //    if (!(groupConfig == null && blocks.Count >= 2))
-    //        foreach (var block in blocks)
-    //            block.SetSprite(groupConfig.GetSpriteByColor(block.Color));
-    //}
 
     private void SetGroupToBlocks(HashSet<Block> foundedBlocks, int? groupId)
     {
@@ -223,8 +185,7 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
         {
             block.SetGroupId(groupId);
 
-            Sprite sprite = null;
-
+            Sprite sprite;
             if (groupConfig != null && groupId.HasValue)
                 sprite = groupConfig.GetSpriteByColor(block.Color);
             else
@@ -255,4 +216,8 @@ public class BoardManager : SingletonMonoBehaviour<BoardManager>
 
     private int GetNextGroupId() => groupIdCounter++;
     #endregion
+
+    public void SetDroppingBlock(Block block) => lastDroppingBlock = block;
+    public void BlockDropped(Block block) => lastDroppingBlock = lastDroppingBlock == block ? 
+                                                                null : lastDroppingBlock;
 }

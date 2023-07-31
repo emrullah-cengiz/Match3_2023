@@ -12,7 +12,8 @@ public class AssetHolder : SingletonScriptableObject<AssetHolder>
 
     public List<BlockColorData> BlockColors = new();
 
-    public BlockColorData GetRandomColorData() => BlockColors[Random.Range(0, BlockColors.Count)];
+    public BlockColorData GetRandomColorData(int? colorNumber = null) => 
+            BlockColors[Random.Range(0, Mathf.Min(BlockColors.Count, colorNumber ?? int.MaxValue))];
 
     public BlockGroupData GetGroupConfigByBlockNumber(int num) =>
             BlockGroupConfigurations.FirstOrDefault(x => num >= x.MinBlockNumber &&

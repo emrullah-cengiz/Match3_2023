@@ -2,14 +2,25 @@ using Assets.Scripts.Actors;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using static Unity.Collections.AllocatorManager;
 
 public class BoardInitializer : MonoBehaviour
 {
     public Transform blocksParent;
+    public Transform mask;
 
     public void Awake()
     {
+        LocateBoardMask();
+
         CreateBoard();
+    }
+
+    private void LocateBoardMask()
+    {
+        mask.localPosition = new(mask.localPosition.x, 
+            BoardHelper.GetBoardPositionByMatrixPosition(new(0, 0)).y + 
+            AssetHolder.Instance.BlockPrefab.GetWidth() + .2f);
     }
 
     public void ResetBoard()
@@ -31,7 +42,7 @@ public class BoardInitializer : MonoBehaviour
         {
             for (int y = 0; y < BoardConfiguration.Instance.RowNumber; y++)
             {
-                var blockColor = AssetHolder.Instance.GetRandomColorData();
+                var blockColor = AssetHolder.Instance.GetRandomColorData(BoardConfiguration.Instance.BlockColorNumber);
                 var blockPrefab = AssetHolder.Instance.BlockPrefab;
 
                 var block = Instantiate(blockPrefab, blocksParent);
@@ -43,7 +54,7 @@ public class BoardInitializer : MonoBehaviour
             }
         }
 
-        BoardManager.Instance.Blocks = blocks;
+        BoardManager.Instance.SetBlocks(blocks);
 
         BoardManager.Instance.ClearGroups();
 
@@ -53,7 +64,7 @@ public class BoardInitializer : MonoBehaviour
             MinY = 0,
             MaxX = BoardConfiguration.Instance.ColumnNumber - 1,
             MaxY = BoardConfiguration.Instance.RowNumber - 1
-        });
+        }); 
     }
 
 }

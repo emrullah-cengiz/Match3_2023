@@ -14,7 +14,6 @@ public class Block : MonoBehaviour
     [HideInInspector] public Vector2Int MatrixPos { get; private set; }
     [HideInInspector] public int? GroupId { get; private set; }
 
-    private bool isDropping;
     private float dropDuration;
     private int rowNumber;
 
@@ -30,32 +29,6 @@ public class Block : MonoBehaviour
         dropDuration = BoardConfiguration.Instance.BlockDropDuration;
     }
 
-    private void OnMouseDown()
-    {
-        if (!isDropping)
-            BoardManager.Instance.OnBlockClicked(this);
-    }
-
-    public void BlowUp()
-    {
-        gameObject.SetActive(false);
-        BoardManager.Instance.BlockPool.SetObject(this);
-    }
-
-    public void FallToOwnPosition()
-    {
-        isDropping = true;
-
-        var targetPos = BoardHelper.GetBoardPositionByMatrixPosition(MatrixPos);
-
-        transform.DOMoveY(targetPos.y, dropDuration)
-                 .SetEase(Ease.OutBounce)
-                 .OnComplete(() => isDropping = false);
-    }
-
-
-    #region Set methods
-
     public void Setup(BlockColorData blockColorData, Vector2Int matrixPos)
     {
         _color = blockColorData;
@@ -66,6 +39,31 @@ public class Block : MonoBehaviour
 
         transform.localPosition = BoardHelper.GetBoardPositionByMatrixPosition(matrixPos);
     }
+
+    private void OnMouseDown()
+    {
+        BoardManager.Instance.OnBlockClicked(this);
+    }
+
+    public void BlowUp()
+    {
+        gameObject.SetActive(false);
+        BoardManager.Instance.BlockPool.SetObject(this);
+    }
+
+    public void FallToOwnPosition()
+    {
+        BoardManager.Instance.SetDroppingBlock(this);
+
+        var targetPos = BoardHelper.GetBoardPositionByMatrixPosition(MatrixPos);
+
+        transform.DOMoveY(targetPos.y, dropDuration)
+                 .SetEase(Ease.OutBounce)
+                 .OnComplete(() => BoardManager.Instance.BlockDropped(this));
+    }
+
+
+    #region Set methods
 
     public void SetSprite(Sprite sprite) => spriteRenderer.sprite = sprite;
 

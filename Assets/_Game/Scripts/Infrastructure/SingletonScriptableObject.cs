@@ -1,8 +1,9 @@
-﻿using UnityEngine;
+﻿using Unity.VisualScripting;
+using UnityEngine;
 
 namespace Assets.Scripts.Infrastructure
 {
-    public abstract class SingletonMonoBehaviour<T> : MonoBehaviour where T : MonoBehaviour
+    public abstract class SingletonScriptableObject<T> : ScriptableObject where T : ScriptableObject
     {
         private static readonly object lock_obj = new();
 
@@ -15,7 +16,12 @@ namespace Assets.Scripts.Infrastructure
                 lock (lock_obj)
                 {
                     if (_instance == null)
-                        _instance = Object.FindObjectOfType<T>();
+                    {
+                        _instance = Resources.Load<T>("_Game/" + typeof(T).ToString());
+
+                        if (_instance == null)
+                            Debug.LogError($"ScriptableObject instance of {typeof(T)} not found on Resource/_Game folder!");
+                    }
 
                     return _instance;
                 }

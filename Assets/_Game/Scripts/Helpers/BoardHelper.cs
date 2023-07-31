@@ -16,6 +16,13 @@ namespace Assets.Scripts.Actors
 
     public static class BoardHelper
     {
+        public static readonly IEnumerable<Vector2Int> NEIGHBOR_DIRECTIONS = new HashSet<Vector2Int>() {
+            Vector2Int.left,
+            Vector2Int.up,
+            Vector2Int.right,
+            Vector2Int.down,
+        };
+
         public static Vector2 GetBoardPositionByMatrixPosition(Vector2Int matrixPos)
         {
             int rowNumber = BoardConfiguration.Instance.RowNumber;
@@ -25,12 +32,13 @@ namespace Assets.Scripts.Actors
 
             float blockWith = blockMargin + blockScale * 2;
 
-            // For centering board
-            matrixPos.x -= rowNumber / 2;
-            matrixPos.y -= columnNumber / 2;
+            Vector2 pos = matrixPos;
 
-            return new Vector2(blockWith * matrixPos.x - (rowNumber % 2 == 0 ? 0 : blockScale / 2),
-                              -blockWith * matrixPos.y + (columnNumber % 2 == 0 ? 0 : blockScale / 2));
+            // For centering board
+            pos.x -= (float)columnNumber / 2;
+            pos.y -= (float)rowNumber / 2;
+
+            return new Vector2((blockWith * pos.x + blockScale), -(blockWith * pos.y + blockScale));
         }
 
         public static MatrixBounds GetMatrixBoundsFromPositionSet(HashSet<Vector2Int> positions, int strechAmount = 0)
