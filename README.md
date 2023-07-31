@@ -1,5 +1,7 @@
 
 # Match-3 Puzzle Case Study (With Collapse/Blast)
+  
+  Project built with Unity 2022.3.5f1
 
   ![ezgif com-crop](https://github.com/githubsiz-developer/Match3_2023/assets/65115099/dab925be-aa2c-4736-87d8-44b0e54c3321)
 
